@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"testing"
 
-	todo "example.com/toDoApp/pkg/models/toDo"
+	todo "github.com/dan-harwood-bjss/toDoApp/pkg/models/toDo"
 )
 
 func TestCreate(t *testing.T) {

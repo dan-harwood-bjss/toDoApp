@@ -1,7 +1,7 @@
 package memory
 
 import (
-	toDo "example.com/toDoApp/pkg/models/toDo"
+	toDo "github.com/dan-harwood-bjss/toDoApp/pkg/models/toDo"
 )
 
 type storeOutcome struct {
