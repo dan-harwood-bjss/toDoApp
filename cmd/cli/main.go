@@ -9,39 +9,16 @@ import (
 	memory "github.com/dan-harwood-bjss/toDoApp/pkg/stores/memory"
 )
 
-func discardBuffer(r *bufio.Reader) {
-	r.Discard(r.Buffered())
-}
-
-func printOptions() {
-	fmt.Println("1 = list To Dos")
-	fmt.Println("2 = create To Do")
-	fmt.Println("3 = update To Do")
-	fmt.Println("4 = delete To Do")
-	fmt.Println("5 = exit")
-
-}
-
 func main() {
-	choice := 0
+	var choice int
 	stdin := bufio.NewReader(os.Stdin)
 	store := memory.NewMemoryStore(nil)
 	for {
-		choice = 0
+		choice = -1
 		fmt.Println("To do list console app. Please select an option by typing a number for one of the below.")
-		printOptions()
+		cli.PrintOptions()
 		fmt.Fscanln(stdin, &choice)
-		discardBuffer(stdin)
-		switch choice {
-		case 1:
-			cli.HandleRead(store)
-		case 2:
-			cli.HandleCreate(stdin, store)
-		case 3:
-			cli.HandleUpdate(stdin, store)
-		case 4:
-			cli.HandleDelete(stdin, store)
-		case 5:
+		if exit := cli.HandleChoice(choice, store, stdin); exit {
 			return
 		}
 	}
