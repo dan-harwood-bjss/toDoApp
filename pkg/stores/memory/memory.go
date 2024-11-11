@@ -13,7 +13,7 @@ type storeOutcome struct {
 	ok   bool
 }
 
-type Store struct {
+type memoryStore struct {
 	data                 map[string]toDo.ToDo
 	createChannel        chan toDo.ToDo
 	readChannel          chan string
@@ -25,11 +25,11 @@ type Store struct {
 	initialised          bool
 }
 
-func NewStore(data map[string]toDo.ToDo) *Store {
+func NewMemoryStore(data map[string]toDo.ToDo) *memoryStore {
 	if data == nil {
 		data = make(map[string]toDo.ToDo)
 	}
-	store := &Store{
+	store := &memoryStore{
 		data:                 data,
 		createChannel:        make(chan toDo.ToDo),
 		readChannel:          make(chan string),
@@ -44,7 +44,7 @@ func NewStore(data map[string]toDo.ToDo) *Store {
 	return store
 }
 
-func (s *Store) loop() {
+func (s *memoryStore) loop() {
 	for {
 		select {
 		case item := <-s.createChannel:
@@ -61,7 +61,7 @@ func (s *Store) loop() {
 	}
 }
 
-func (s *Store) create(item toDo.ToDo) {
+func (s *memoryStore) create(item toDo.ToDo) {
 	value, ok := s.data[item.Name]
 	if ok {
 		s.outChannel <- storeOutcome{value, !ok}
@@ -71,12 +71,12 @@ func (s *Store) create(item toDo.ToDo) {
 	s.outChannel <- storeOutcome{item, !ok}
 }
 
-func (s *Store) read(key string) {
+func (s *memoryStore) read(key string) {
 	value, ok := s.data[key]
 	s.outChannel <- storeOutcome{value, ok}
 }
 
-func (s *Store) update(item toDo.ToDo) {
+func (s *memoryStore) update(item toDo.ToDo) {
 	_, ok := s.data[item.Name]
 	if !ok {
 		s.outChannel <- storeOutcome{ok: ok}
@@ -86,7 +86,7 @@ func (s *Store) update(item toDo.ToDo) {
 	s.outChannel <- storeOutcome{item, ok}
 }
 
-func (s *Store) delete(key string) {
+func (s *memoryStore) delete(key string) {
 	_, ok := s.data[key]
 	if !ok {
 		s.outChannel <- storeOutcome{ok: ok}
@@ -96,11 +96,11 @@ func (s *Store) delete(key string) {
 	s.outChannel <- storeOutcome{ok: ok}
 }
 
-func (s *Store) readAll() {
+func (s *memoryStore) readAll() {
 	s.readAllReturnChannel <- readAllOutcome{items: s.data, ok: true}
 }
 
-func Create(s *Store, item toDo.ToDo) (value toDo.ToDo, ok bool) {
+func (s *memoryStore) Create(item toDo.ToDo) (value toDo.ToDo, ok bool) {
 	if !s.initialised {
 		return
 	}
@@ -109,7 +109,7 @@ func Create(s *Store, item toDo.ToDo) (value toDo.ToDo, ok bool) {
 	return output.item, output.ok
 }
 
-func Read(s *Store, key string) (value toDo.ToDo, ok bool) {
+func (s *memoryStore) Read(key string) (value toDo.ToDo, ok bool) {
 	if !s.initialised {
 		return
 	}
@@ -118,7 +118,7 @@ func Read(s *Store, key string) (value toDo.ToDo, ok bool) {
 	return item.item, item.ok
 }
 
-func Update(s *Store, item toDo.ToDo) (ok bool) {
+func (s *memoryStore) Update(item toDo.ToDo) (ok bool) {
 	if !s.initialised {
 		return
 	}
@@ -127,7 +127,7 @@ func Update(s *Store, item toDo.ToDo) (ok bool) {
 	return output.ok
 }
 
-func Delete(s *Store, key string) (ok bool) {
+func (s *memoryStore) Delete(key string) (ok bool) {
 	if !s.initialised {
 		return
 	}
@@ -136,7 +136,7 @@ func Delete(s *Store, key string) (ok bool) {
 	return output.ok
 }
 
-func ReadAll(s *Store) (items map[string]toDo.ToDo, ok bool) {
+func (s *memoryStore) ReadAll() (items map[string]toDo.ToDo, ok bool) {
 	if !s.initialised {
 		return
 	}

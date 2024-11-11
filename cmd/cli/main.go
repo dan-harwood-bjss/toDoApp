@@ -25,7 +25,7 @@ func printOptions() {
 func main() {
 	choice := 0
 	stdin := bufio.NewReader(os.Stdin)
-	store := memory.NewStore(nil)
+	store := memory.NewMemoryStore(nil)
 	for {
 		choice = 0
 		fmt.Println("To do list console app. Please select an option by typing a number for one of the below.")
@@ -34,7 +34,7 @@ func main() {
 		discardBuffer(stdin)
 		switch choice {
 		case 1:
-			items, ok := memory.ReadAll(store)
+			items, ok := store.ReadAll()
 			if !ok {
 				fmt.Println("Not OK")
 			} else if len(items) == 0 {
@@ -50,7 +50,7 @@ func main() {
 			name, _ = stdin.ReadString('\n')
 			fmt.Print("Description: ")
 			description, _ = stdin.ReadString('\n')
-			_, ok := memory.Create(store, toDo.NewToDo(name, description, false))
+			_, ok := store.Create(toDo.NewToDo(name, description, false))
 			if !ok {
 				fmt.Println("Failed to add to do.")
 			}
@@ -58,12 +58,12 @@ func main() {
 			fmt.Println("Enter the name of the To Do you wish to change status: (Case sensitive.)")
 			fmt.Print("Name: ")
 			name, _ := stdin.ReadString('\n')
-			item, ok := memory.Read(store, name)
+			item, ok := store.Read(name)
 			if !ok {
 				fmt.Println("Could not update item as it was not found.")
 			} else {
 				item.Completed = !item.Completed
-				ok = memory.Update(store, item)
+				ok = store.Update(item)
 				if !ok {
 					fmt.Println("Failed to update to do.")
 				}
@@ -72,7 +72,7 @@ func main() {
 			fmt.Println("Enter the name of the To Do you wish to delete: (Case sensitive.)")
 			fmt.Print("Name: ")
 			name, _ := stdin.ReadString('\n')
-			if ok := memory.Delete(store, name); !ok {
+			if ok := store.Delete(name); !ok {
 				fmt.Println("Failed to delete To Do. Check that it exists.")
 			}
 		case 5:

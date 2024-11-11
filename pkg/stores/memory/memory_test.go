@@ -11,10 +11,10 @@ import (
 func TestCreate(t *testing.T) {
 	t.Run("Can create an item", func(t *testing.T) {
 		item := todo.NewToDo("Work", "Do some work!", false)
-		store := NewStore(nil)
+		store := NewMemoryStore(nil)
 		want := item
 
-		got, ok := Create(store, item)
+		got, ok := store.Create(item)
 
 		if !ok {
 			t.Fatal("Expected create to return ok but instead got not ok.")
@@ -31,11 +31,11 @@ func TestCreate(t *testing.T) {
 	})
 	t.Run("Returns not ok and does not create when item exists with key.", func(t *testing.T) {
 		item := todo.NewToDo("Work", "Do some work!", false)
-		store := NewStore(map[string]todo.ToDo{item.Name: item})
+		store := NewMemoryStore(map[string]todo.ToDo{item.Name: item})
 		clashingItem := todo.NewToDo("Work", "Some other work", true)
 		want := item
 
-		got, ok := Create(store, clashingItem)
+		got, ok := store.Create(clashingItem)
 
 		if ok {
 			t.Fatal("Expected create to return not ok but got ok.")
@@ -52,9 +52,9 @@ func TestCreate(t *testing.T) {
 	})
 	t.Run("Returns not ok when not store not initialised.", func(t *testing.T) {
 		item := todo.NewToDo("Work", "Do some work!", false)
-		store := &Store{}
+		store := &memoryStore{}
 
-		_, ok := Create(store, item)
+		_, ok := store.Create(item)
 
 		if ok {
 			t.Error("Read returned ok when Store not initialised.")
@@ -64,9 +64,9 @@ func TestCreate(t *testing.T) {
 func TestRead(t *testing.T) {
 	t.Run("Can read data from store.", func(t *testing.T) {
 		item := todo.NewToDo("Work", "Do some work!", false)
-		store := NewStore(map[string]todo.ToDo{item.Name: item})
+		store := NewMemoryStore(map[string]todo.ToDo{item.Name: item})
 		want := item
-		got, ok := Read(store, item.Name)
+		got, ok := store.Read(item.Name)
 
 		if !ok {
 			t.Fatal("Read returned not ok.")
@@ -76,18 +76,18 @@ func TestRead(t *testing.T) {
 		}
 	})
 	t.Run("Returns not ok when data is not present", func(t *testing.T) {
-		store := NewStore(nil)
+		store := NewMemoryStore(nil)
 
-		_, ok := Read(store, "Invalid")
+		_, ok := store.Read("Invalid")
 
 		if ok {
 			t.Error("Read returned ok as true, expected read to return ok as false.")
 		}
 	})
 	t.Run("Returns not ok when not store not initialised.", func(t *testing.T) {
-		store := &Store{}
+		store := &memoryStore{}
 
-		_, ok := Read(store, "Not initialised")
+		_, ok := store.Read("Not initialised")
 
 		if ok {
 			t.Error("Read returned ok when Store not initialised.")
@@ -98,9 +98,9 @@ func TestRead(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	t.Run("Can update store", func(t *testing.T) {
 		item := todo.NewToDo("Work", "Do some work!", false)
-		store := NewStore(map[string]todo.ToDo{item.Name: item})
+		store := NewMemoryStore(map[string]todo.ToDo{item.Name: item})
 		updatedItem := todo.NewToDo("Work", "I have Changed", true)
-		ok := Update(store, updatedItem)
+		ok := store.Update(updatedItem)
 
 		if !ok {
 			t.Fatal("Expected update to return ok but returned not ok.")
@@ -113,18 +113,18 @@ func TestUpdate(t *testing.T) {
 		}
 	})
 	t.Run("Returns not ok when data not present.", func(t *testing.T) {
-		store := NewStore(nil)
+		store := NewMemoryStore(nil)
 		item := todo.NewToDo("Work", "Do some work!", false)
-		ok := Update(store, item)
+		ok := store.Update(item)
 
 		if ok {
 			t.Error("Expected Update to return not ok but got ok.")
 		}
 	})
 	t.Run("Returns not ok when store not initialised.", func(t *testing.T) {
-		store := &Store{}
+		store := &memoryStore{}
 		item := todo.NewToDo("Work", "Do some work!", false)
-		ok := Update(store, item)
+		ok := store.Update(item)
 
 		if ok {
 			t.Error("Expected store to return not ok when store not initialised but instead got ok.")
@@ -135,24 +135,24 @@ func TestUpdate(t *testing.T) {
 func TestDelete(t *testing.T) {
 	t.Run("Deletes item successfully", func(t *testing.T) {
 		item := todo.NewToDo("Work", "Do some work!", false)
-		store := NewStore(map[string]todo.ToDo{item.Name: item})
-		ok := Delete(store, item.Name)
+		store := NewMemoryStore(map[string]todo.ToDo{item.Name: item})
+		ok := store.Delete(item.Name)
 
 		if !ok {
 			t.Fatal("Expected delete to return ok but got not ok.")
 		}
 	})
 	t.Run("Returns not ok when item doesn't exist.", func(t *testing.T) {
-		store := NewStore(nil)
-		ok := Delete(store, "Not exist")
+		store := NewMemoryStore(nil)
+		ok := store.Delete("Not exist")
 
 		if ok {
 			t.Error("Expected not ok but got ok.")
 		}
 	})
 	t.Run("Returns not ok when store not initialised.", func(t *testing.T) {
-		store := &Store{}
-		ok := Delete(store, "Some key")
+		store := &memoryStore{}
+		ok := store.Delete("Some key")
 
 		if ok {
 			t.Error("Expected store to return not ok when store not initialised but instead got ok.")
@@ -183,8 +183,8 @@ func TestReadAll(t *testing.T) {
 			},
 		}
 		for _, tc := range tests {
-			store := NewStore(tc.Want)
-			got, ok := ReadAll(store)
+			store := NewMemoryStore(tc.Want)
+			got, ok := store.ReadAll()
 			if !ok {
 				t.Fatal("Expected read all to return ok but got not ok.")
 			}
@@ -194,8 +194,8 @@ func TestReadAll(t *testing.T) {
 		}
 	})
 	t.Run("Returns not ok when store is not initialised", func(t *testing.T) {
-		store := &Store{}
-		_, ok := ReadAll(store)
+		store := &memoryStore{}
+		_, ok := store.ReadAll()
 
 		if ok {
 			t.Error("Expected store to return not ok when store not initialised but instead got ok.")
@@ -204,19 +204,19 @@ func TestReadAll(t *testing.T) {
 }
 
 func BenchmarkStore(b *testing.B) {
-	store := NewStore(nil)
+	store := NewMemoryStore(nil)
 	items := []todo.ToDo{}
 	for i := 0; i < b.N; i++ {
 		items = append(items, todo.NewToDo(strconv.Itoa(i), "Some description", false))
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		go Create(store, items[i])
-		go Read(store, items[i].Name)
-		go Update(store, items[i])
-		go Delete(store, items[i].Name)
+		go store.Create(items[i])
+		go store.Read(items[i].Name)
+		go store.Update(items[i])
+		go store.Delete(items[i].Name)
 		if i%5 == 0 {
-			go ReadAll(store)
+			go store.ReadAll()
 		}
 	}
 }
