@@ -211,12 +211,12 @@ func BenchmarkStore(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		go store.Create(items[i])
-		go store.Read(items[i].Name)
-		go store.Update(items[i])
-		go store.Delete(items[i].Name)
-		if i%5 == 0 {
+		go func() {
+			go store.Create(items[i])
+			go store.Read(items[i].Name)
+			go store.Update(items[i])
+			go store.Delete(items[i].Name)
 			go store.ReadAll()
-		}
+		}()
 	}
 }
