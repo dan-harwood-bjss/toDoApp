@@ -159,6 +159,50 @@ func TestDelete(t *testing.T) {
 		}
 	})
 }
+
+func TestReadAll(t *testing.T) {
+	t.Run("Test happy paths", func(t *testing.T) {
+		tests := []struct {
+			Name string
+			Want map[string]todo.ToDo
+		}{
+			{
+				Name: "Returns empty map when there is no data.",
+				Want: make(map[string]todo.ToDo),
+			},
+			{
+				Name: "Returns all data when one item in map",
+				Want: map[string]todo.ToDo{"Work": todo.NewToDo("Work", "Some Work", false)},
+			},
+			{
+				Name: "Returns all data when more than one item.",
+				Want: map[string]todo.ToDo{
+					"Work":       todo.NewToDo("Work", "Some Work", false),
+					"Other Work": todo.NewToDo("Other Work", "Some other Work", true),
+				},
+			},
+		}
+		for _, tc := range tests {
+			store := NewStore(tc.Want)
+			got, ok := ReadAll(store)
+			if !ok {
+				t.Fatal("Expected read all to return ok but got not ok.")
+			}
+			if !reflect.DeepEqual(got, tc.Want) {
+				t.Errorf("got %v but wanted %v", got, tc.Want)
+			}
+		}
+	})
+	t.Run("Returns not ok when store is not initialised", func(t *testing.T) {
+		store := &Store{}
+		_, ok := ReadAll(store)
+
+		if ok {
+			t.Error("Expected store to return not ok when store not initialised but instead got ok.")
+		}
+	})
+}
+
 func BenchmarkStore(b *testing.B) {
 	store := NewStore(nil)
 	items := []todo.ToDo{}
@@ -171,5 +215,8 @@ func BenchmarkStore(b *testing.B) {
 		go Read(store, items[i].Name)
 		go Update(store, items[i])
 		go Delete(store, items[i].Name)
+		if i%5 == 0 {
+			go ReadAll(store)
+		}
 	}
 }
