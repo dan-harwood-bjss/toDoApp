@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	toDo "github.com/dan-harwood-bjss/toDoApp/pkg/models/toDo"
+	cli "github.com/dan-harwood-bjss/toDoApp/pkg/cli"
 	memory "github.com/dan-harwood-bjss/toDoApp/pkg/stores/memory"
 )
 
@@ -34,47 +34,13 @@ func main() {
 		discardBuffer(stdin)
 		switch choice {
 		case 1:
-			items, ok := store.ReadAll()
-			if !ok {
-				fmt.Println("Not OK")
-			} else if len(items) == 0 {
-				fmt.Println("Nothing in list.")
-			} else {
-				fmt.Printf("To Do Items:\n%v\n", items)
-			}
+			cli.HandleRead(store)
 		case 2:
-			name := ""
-			description := ""
-			fmt.Println("Please enter the information below:")
-			fmt.Print("Name: ")
-			name, _ = stdin.ReadString('\n')
-			fmt.Print("Description: ")
-			description, _ = stdin.ReadString('\n')
-			_, ok := store.Create(toDo.NewToDo(name, description, false))
-			if !ok {
-				fmt.Println("Failed to add to do.")
-			}
+			cli.HandleCreate(stdin, store)
 		case 3:
-			fmt.Println("Enter the name of the To Do you wish to change status: (Case sensitive.)")
-			fmt.Print("Name: ")
-			name, _ := stdin.ReadString('\n')
-			item, ok := store.Read(name)
-			if !ok {
-				fmt.Println("Could not update item as it was not found.")
-			} else {
-				item.Completed = !item.Completed
-				ok = store.Update(item)
-				if !ok {
-					fmt.Println("Failed to update to do.")
-				}
-			}
+			cli.HandleUpdate(stdin, store)
 		case 4:
-			fmt.Println("Enter the name of the To Do you wish to delete: (Case sensitive.)")
-			fmt.Print("Name: ")
-			name, _ := stdin.ReadString('\n')
-			if ok := store.Delete(name); !ok {
-				fmt.Println("Failed to delete To Do. Check that it exists.")
-			}
+			cli.HandleDelete(stdin, store)
 		case 5:
 			return
 		}
