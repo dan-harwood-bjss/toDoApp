@@ -3,6 +3,7 @@ package memory
 import (
 	"reflect"
 	"strconv"
+	"sync"
 	"testing"
 
 	todo "github.com/dan-harwood-bjss/toDoApp/pkg/models/toDo"
@@ -210,13 +211,13 @@ func BenchmarkStore(b *testing.B) {
 		items = append(items, todo.NewToDo(strconv.Itoa(i), "Some description", false))
 	}
 	b.ResetTimer()
+	wg := sync.WaitGroup{}
 	for i := 0; i < b.N; i++ {
+		wg.Add(1)
 		go func() {
-			go store.Create(items[i])
-			go store.Read(items[i].Name)
-			go store.Update(items[i])
-			go store.Delete(items[i].Name)
-			go store.ReadAll()
+			store.Create(items[i])
+			wg.Done()
 		}()
 	}
+	wg.Wait()
 }
