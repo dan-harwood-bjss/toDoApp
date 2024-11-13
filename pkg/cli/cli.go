@@ -3,10 +3,12 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	"os"
 	"strings"
 
 	toDo "github.com/dan-harwood-bjss/toDoApp/pkg/models/toDo"
-	store "github.com/dan-harwood-bjss/toDoApp/pkg/stores/store"
+	jsonStore "github.com/dan-harwood-bjss/toDoApp/pkg/stores/json"
+	"github.com/google/uuid"
 )
 
 func validateString(str string) bool {
@@ -39,7 +41,7 @@ func PrintOptions() {
 
 }
 
-func HandleChoice(choice int, store store.Store, stdin *bufio.Reader) bool {
+func HandleChoice(choice int, store *jsonStore.JsonStore, stdin *bufio.Reader) bool {
 	switch choice {
 	case 1:
 		HandleRead(store)
@@ -50,6 +52,7 @@ func HandleChoice(choice int, store store.Store, stdin *bufio.Reader) bool {
 	case 4:
 		HandleDelete(stdin, store)
 	case 5:
+		HandleExit(store)
 		return true
 	default:
 		fmt.Println("Option not understood, please choose a valid option.")
@@ -57,10 +60,10 @@ func HandleChoice(choice int, store store.Store, stdin *bufio.Reader) bool {
 	discardBuffer(stdin)
 	return false
 }
-func HandleRead(store store.Store) {
-	items, ok := store.ReadAll()
-	if !ok {
-		fmt.Println("Not OK")
+func HandleRead(store *jsonStore.JsonStore) {
+	items, err := jsonStore.Read(store)
+	if err != nil {
+		fmt.Println("Error reading store:", err)
 	} else if len(items) == 0 {
 		fmt.Println("Nothing in list.")
 	} else {
@@ -68,7 +71,7 @@ func HandleRead(store store.Store) {
 	}
 }
 
-func HandleCreate(stdin *bufio.Reader, store store.Store) {
+func HandleCreate(stdin *bufio.Reader, store *jsonStore.JsonStore) {
 	fmt.Println("Please enter the information below:")
 	fmt.Print("Name: ")
 	name, _ := stdin.ReadString('\n')
@@ -84,43 +87,59 @@ func HandleCreate(stdin *bufio.Reader, store store.Store) {
 	}
 	name = removeNewlineFromString(name)
 	description = removeNewlineFromString(description)
-	_, ok := store.Create(toDo.NewToDo(name, description, false))
-	if !ok {
-		fmt.Println("Failed to add to do.")
+	err := jsonStore.Create(store, toDo.NewToDo(uuid.NewString(), name, description, false))
+	if err != nil {
+		fmt.Println("Failed to add to do due to error:", err)
 	}
 }
 
-func HandleUpdate(stdin *bufio.Reader, store store.Store) {
-	fmt.Println("Enter the name of the To Do you wish to change status: (Case sensitive.)")
-	fmt.Print("Name: ")
-	name, _ := stdin.ReadString('\n')
-	if ok := validateString(name); !ok {
-		fmt.Println("Could not update item as invalid name given.")
+func HandleUpdate(stdin *bufio.Reader, store *jsonStore.JsonStore) {
+	fmt.Println("Enter the id of the To Do you wish to change status: ")
+	fmt.Print("Id: ")
+	id, _ := stdin.ReadString('\n')
+	if ok := validateString(id); !ok {
+		fmt.Println("Could not update item as invalid id given.")
 		return
 	}
-	name = removeNewlineFromString(name)
-	item, ok := store.Read(name)
-	if !ok {
-		fmt.Println("Could not update item as it was not found.")
-	} else {
-		item.Completed = !item.Completed
-		ok = store.Update(item)
-		if !ok {
-			fmt.Println("Failed to update to do.")
-		}
+	id = removeNewlineFromString(id)
+	item, err := jsonStore.GetItem(store, id)
+	if err != nil {
+		fmt.Println("Error updating item:", err)
+		return
+	}
+	item.Completed = !item.Completed
+	err = jsonStore.Update(store, item)
+	if err != nil {
+		fmt.Println("Error updating item:", err)
+		return
 	}
 }
 
-func HandleDelete(stdin *bufio.Reader, store store.Store) {
-	fmt.Println("Enter the name of the To Do you wish to delete: (Case sensitive.)")
-	fmt.Print("Name: ")
-	name, _ := stdin.ReadString('\n')
-	if ok := validateString(name); !ok {
-		fmt.Println("Could not delete item as invalid name given.")
+func HandleDelete(stdin *bufio.Reader, store *jsonStore.JsonStore) {
+	fmt.Println("Enter the id of the To Do you wish to delete: ")
+	fmt.Print("id: ")
+	id, _ := stdin.ReadString('\n')
+	if ok := validateString(id); !ok {
+		fmt.Println("Could not delete item as invalid id given.")
 		return
 	}
-	name = removeNewlineFromString(name)
-	if ok := store.Delete(name); !ok {
-		fmt.Println("Failed to delete To Do. Check that it exists.")
+	id = removeNewlineFromString(id)
+	if err := jsonStore.Delete(store, id); err != nil {
+		fmt.Println("Failed to delete To Do due to error:", err)
+	}
+}
+
+func HandleExit(store *jsonStore.JsonStore) {
+	fmt.Println("Committing data to file.")
+	file, err := os.Create("db.json")
+	if err != nil {
+		fmt.Println("Could not commit data to file, data will be wiped due to error:", err)
+		return
+	}
+	defer file.Close()
+	err = jsonStore.WriteToFile(store, file)
+	if err != nil {
+		fmt.Println("Could not commit data to file, data will be wiped due to error:", err)
+		return
 	}
 }

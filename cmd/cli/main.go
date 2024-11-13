@@ -6,13 +6,19 @@ import (
 	"os"
 
 	cli "github.com/dan-harwood-bjss/toDoApp/pkg/cli"
-	memory "github.com/dan-harwood-bjss/toDoApp/pkg/stores/memory"
+	jsonStore "github.com/dan-harwood-bjss/toDoApp/pkg/stores/json"
 )
 
 func main() {
 	var choice int
 	stdin := bufio.NewReader(os.Stdin)
-	store := memory.NewMemoryStore(nil)
+	file, err := os.OpenFile("db.json", os.O_CREATE|os.O_RDONLY, 0644)
+	if err != nil {
+		fmt.Printf("Received an error when opening file: %v\n", err)
+		return
+	}
+	store, _ := jsonStore.NewJsonStore(file)
+	file.Close()
 	for {
 		choice = -1
 		fmt.Println("To do list console app. Please select an option by typing a number for one of the below.")

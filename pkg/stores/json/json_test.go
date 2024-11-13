@@ -65,7 +65,10 @@ func TestRead(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no errors but got: %v", err)
 	}
-	got := Read(store)
+	got, err := Read(store)
+	if err != nil {
+		t.Fatalf("Got an error when reading from store: %v", err)
+	}
 	if !reflect.DeepEqual(got, data) {
 		t.Errorf("wanted %v but got %v", got, data)
 	}
