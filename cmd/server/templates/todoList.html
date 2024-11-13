@@ -1,0 +1,14 @@
+<h1>{{.PageTitle}}</h1>
+<ul>
+    {{if .Todos}} {{range $key, $value := .Todos}} {{if $value.Completed}}
+    <li class="done">
+        <span>{{$value.Name}}</span><span style="color: green"> Completed</span>
+    </li>
+    {{else}}
+    <li>
+        <span>{{$value.Name}}</span><span style="color: red"> Incomplete</span>
+    </li>
+    {{end}} {{end}} {{else}}
+    <p>Nothing to see here!</p>
+    {{end}}
+</ul>
