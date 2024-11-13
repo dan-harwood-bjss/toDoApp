@@ -7,25 +7,40 @@ import (
 	toDo "github.com/dan-harwood-bjss/toDoApp/pkg/models/toDo"
 )
 
-type readAllOutcome struct {
-	items map[string]toDo.ToDo
-	ok    bool
+const (
+	CREATE    string = "CREATE"
+	READ      string = "READ"
+	UPDATE    string = "UPDATE"
+	DELETE    string = "DELETE"
+	FILEWRITE string = "FILEWRITE"
+)
+
+type constError string
+
+func (err constError) Error() string {
+	return string(err)
 }
-type storeOutcome struct {
-	item toDo.ToDo
-	ok   bool
+
+const (
+	ItemAlreadyExists = constError("Can not create item as it already exists.")
+	ItemDoesNotExist  = constError("Can not update item as it does not exist.")
+)
+
+type storeInput struct {
+	action string
+	item   toDo.ToDo
+	file   io.ReadWriter
+}
+
+type storeResponse struct {
+	items map[string]toDo.ToDo
+	err   error
 }
 
 type jsonStore struct {
-	data                 map[string]toDo.ToDo
-	createChannel        chan toDo.ToDo
-	readChannel          chan string
-	updateChannel        chan toDo.ToDo
-	deleteChannel        chan string
-	readAllChannel       chan struct{}
-	outChannel           chan storeOutcome
-	readAllReturnChannel chan readAllOutcome
-	initialised          bool
+	data            map[string]toDo.ToDo
+	inputChannel    chan storeInput
+	responseChannel chan storeResponse
 }
 
 func readFile(file io.Reader) (map[string]toDo.ToDo, error) {
@@ -44,125 +59,96 @@ func NewJsonStore(file io.Reader) (*jsonStore, error) {
 		return nil, err
 	}
 	store := &jsonStore{
-		data:                 data,
-		createChannel:        make(chan toDo.ToDo),
-		readChannel:          make(chan string),
-		updateChannel:        make(chan toDo.ToDo),
-		deleteChannel:        make(chan string),
-		outChannel:           make(chan storeOutcome),
-		readAllChannel:       make(chan struct{}),
-		readAllReturnChannel: make(chan readAllOutcome),
-		initialised:          true,
+		data:            data,
+		inputChannel:    make(chan storeInput),
+		responseChannel: make(chan storeResponse),
 	}
-	go store.loop()
+	go loop(store)
 	return store, nil
 }
 
-func (s *jsonStore) loop() {
-	for {
-		select {
-		case item := <-s.createChannel:
-			s.create(item)
-		case key := <-s.readChannel:
-			s.read(key)
-		case item := <-s.updateChannel:
-			s.update(item)
-		case key := <-s.deleteChannel:
-			s.delete(key)
-		case <-s.readAllChannel:
-			s.readAll()
+func loop(s *jsonStore) {
+	for input := range s.inputChannel {
+		switch input.action {
+		case CREATE:
+			create(s, input.item)
+		case READ:
+			read(s)
+		case UPDATE:
+			update(s, input.item)
+		case DELETE:
+			deleteItem(s, input.item)
+		case FILEWRITE:
+			writeToFile(s, input.file)
 		}
 	}
 }
 
-func (s *jsonStore) create(item toDo.ToDo) {
-	value, ok := s.data[item.Name]
+func create(s *jsonStore, item toDo.ToDo) {
+	_, ok := s.data[item.Id]
 	if ok {
-		s.outChannel <- storeOutcome{value, !ok}
+		s.responseChannel <- storeResponse{nil, ItemAlreadyExists}
 		return
 	}
-	s.data[item.Name] = item
-	s.outChannel <- storeOutcome{item, !ok}
+	s.data[item.Id] = item
+	s.responseChannel <- storeResponse{}
 }
 
-func (s *jsonStore) read(key string) {
-	value, ok := s.data[key]
-	s.outChannel <- storeOutcome{value, ok}
+func read(s *jsonStore) {
+	s.responseChannel <- storeResponse{s.data, nil}
 }
 
-func (s *jsonStore) update(item toDo.ToDo) {
-	_, ok := s.data[item.Name]
+func update(s *jsonStore, item toDo.ToDo) {
+	_, ok := s.data[item.Id]
 	if !ok {
-		s.outChannel <- storeOutcome{ok: ok}
+		s.responseChannel <- storeResponse{nil, ItemDoesNotExist}
 		return
 	}
-	s.data[item.Name] = item
-	s.outChannel <- storeOutcome{item, ok}
+	s.data[item.Id] = item
+	s.responseChannel <- storeResponse{}
 }
 
-func (s *jsonStore) delete(key string) {
-	_, ok := s.data[key]
-	if !ok {
-		s.outChannel <- storeOutcome{ok: ok}
-		return
-	}
-	delete(s.data, key)
-	s.outChannel <- storeOutcome{ok: ok}
+func deleteItem(s *jsonStore, item toDo.ToDo) {
+	delete(s.data, item.Id)
+	s.responseChannel <- storeResponse{}
 }
 
-func (s *jsonStore) readAll() {
-	s.readAllReturnChannel <- readAllOutcome{items: s.data, ok: true}
-}
-
-func (s *jsonStore) Create(item toDo.ToDo) (value toDo.ToDo, ok bool) {
-	if !s.initialised {
-		return
-	}
-	s.createChannel <- item
-	output := <-s.outChannel
-	return output.item, output.ok
-}
-
-func (s *jsonStore) Read(key string) (value toDo.ToDo, ok bool) {
-	if !s.initialised {
-		return
-	}
-	s.readChannel <- key
-	item := <-s.outChannel
-	return item.item, item.ok
-}
-
-func (s *jsonStore) Update(item toDo.ToDo) (ok bool) {
-	if !s.initialised {
-		return
-	}
-	s.updateChannel <- item
-	output := <-s.outChannel
-	return output.ok
-}
-
-func (s *jsonStore) Delete(key string) (ok bool) {
-	if !s.initialised {
-		return
-	}
-	s.deleteChannel <- key
-	output := <-s.outChannel
-	return output.ok
-}
-
-func (s *jsonStore) ReadAll() (items map[string]toDo.ToDo, ok bool) {
-	if !s.initialised {
-		return
-	}
-	s.readAllChannel <- struct{}{}
-	output := <-s.readAllReturnChannel
-	return output.items, output.ok
-}
-
-func (s *jsonStore) Close(file io.Writer) error {
+func writeToFile(s *jsonStore, file io.ReadWriter) {
 	jsonData, err := json.Marshal(s.data)
 	if err != nil {
-		return err
+		s.responseChannel <- storeResponse{nil, err}
+		return
+
 	}
 	file.Write(jsonData)
+}
+
+func Create(s *jsonStore, item toDo.ToDo) error {
+	input := storeInput{action: CREATE, item: item}
+	s.inputChannel <- input
+	output := <-s.responseChannel
+	return output.err
+}
+
+func Read(s *jsonStore) map[string]toDo.ToDo {
+	s.inputChannel <- storeInput{action: READ, item: toDo.ToDo{}}
+	output := <-s.responseChannel
+	return output.items
+}
+
+func Update(s *jsonStore, item toDo.ToDo) error {
+	s.inputChannel <- storeInput{action: UPDATE, item: item}
+	output := <-s.responseChannel
+	return output.err
+}
+
+func Delete(s *jsonStore, item toDo.ToDo) {
+	s.inputChannel <- storeInput{action: DELETE, item: item}
+	<-s.responseChannel
+}
+
+func WriteToFile(s *jsonStore, file io.ReadWriter) error {
+	s.inputChannel <- storeInput{action: FILEWRITE, file: file}
+	output := <-s.responseChannel
+	return output.err
 }
