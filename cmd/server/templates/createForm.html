@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="stylesheet" href="./static/styles.css" />
+        <title>ToDoApp</title>
+    </head>
+    <body>
+        <form action="http://localhost:8080/create" method="post" class="flex">
+            <label for="name">Enter name:</label>
+            <input type="text" name="name" id="name" />
+            <label for="description">Enter description:</label>
+            <input type="text" name="description" id="description" />
+            <input type="checkbox" id="completed" name="completed" />
+            <label for="completed">Completed</label>
+            <div class="flex-row">
+                <input class="button" type="submit" value="Submit" />
+                <a class="button" href="http://localhost:8080/">Cancel</a>
+            </div>
+        </form>
+    </body>
+</html>

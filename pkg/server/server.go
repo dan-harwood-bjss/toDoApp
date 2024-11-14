@@ -16,6 +16,13 @@ type TodoPageData struct {
 	Todos     map[string]todo.ToDo
 }
 
+func GetCreateForm(store *jsonStore.JsonStore) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		tmpl := template.Must(template.ParseFiles("./templates/createForm.html"))
+		tmpl.Execute(w, nil)
+	}
+}
+
 func Create(store *jsonStore.JsonStore) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := log.Default()
@@ -88,6 +95,25 @@ func GetUpdateForm(store *jsonStore.JsonStore) func(w http.ResponseWriter, r *ht
 
 func Update(store *jsonStore.JsonStore) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		id := r.URL.Query().Get("id")
+		r.ParseForm()
+		name := r.Form.Get("name")
+		description := r.Form.Get("description")
+		completed := r.Form.Get("completed")
+		isCompleted := false
+		if completed != "" {
+			isCompleted = true
+		}
+		item := todo.NewToDo(id, name, description, isCompleted)
+		jsonStore.Update(store, item)
+		http.Redirect(w, r, "", http.StatusSeeOther)
+	}
+}
 
+func Delete(store *jsonStore.JsonStore) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := r.URL.Query().Get("id")
+		jsonStore.Delete(store, id)
+		http.Redirect(w, r, "", http.StatusSeeOther)
 	}
 }

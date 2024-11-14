@@ -3,7 +3,6 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <script src="./static/main.js"></script>
         <link rel="stylesheet" href="./static/styles.css" />
         <title>ToDoApp</title>
     </head>
@@ -15,17 +14,20 @@
             <li class="flex-row">
                 <p>{{$value.Name}}</p>
                 <p class="completed">Completed</p>
+                <a href="/update-form?id={{$value.Id}}">Update</a>
+                <a href="/delete?id={{$value.Id}}">Delete</a>
             </li>
             {{else}}
             <li class="flex-row">
                 <p>{{$value.Name}}</p>
                 <p class="incomplete">Incomplete</p>
                 <a href="/update-form?id={{$value.Id}}">Update</a>
-                <a href="/Delete?id={{$value.Id}}">Delete</a>
+                <a href="/delete?id={{$value.Id}}">Delete</a>
             </li>
             {{end}} {{end}} {{else}}
             <p>Nothing to see here!</p>
             {{end}}
+            <a href="/create-form">Add Item</a>
         </ul>
     </body>
 </html>
