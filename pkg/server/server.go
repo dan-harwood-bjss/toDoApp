@@ -1,16 +1,22 @@
 package server
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"path/filepath"
 	"text/template"
+	"time"
 
 	todo "github.com/dan-harwood-bjss/toDoApp/pkg/models/toDo"
 	jsonStore "github.com/dan-harwood-bjss/toDoApp/pkg/stores/json"
 	"github.com/google/uuid"
 )
 
+type readResponse struct {
+	items map[string]todo.ToDo
+	err   error
+}
 type TodoPageData struct {
 	PageTitle string
 	Todos     map[string]todo.ToDo
@@ -57,7 +63,7 @@ func Create(store *jsonStore.JsonStore) func(w http.ResponseWriter, r *http.Requ
 		http.Redirect(w, r, "", http.StatusSeeOther)
 	}
 }
-func Read(store *jsonStore.JsonStore) func(w http.ResponseWriter, r *http.Request) {
+func Read(store *jsonStore.JsonStore, ctx context.Context) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if filepath.Clean(r.URL.Path) != "/" {
 			http.NotFound(w, r)
@@ -70,17 +76,32 @@ func Read(store *jsonStore.JsonStore) func(w http.ResponseWriter, r *http.Reques
 			return
 		}
 		logger.Printf("Received request method: %v\n", r.Method)
-		items, err := jsonStore.Read(store)
-		if err != nil {
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
+		ctx, cancel := context.WithTimeout(ctx, time.Second*10)
+		defer cancel()
+		responseChan := make(chan readResponse)
+		go func() {
+			items, err := jsonStore.Read(store)
+			if err != nil {
+				responseChan <- readResponse{nil, err}
+				return
+			}
+			responseChan <- readResponse{items, nil}
+		}()
+		for {
+			select {
+			case <-ctx.Done():
+				http.Error(w, http.StatusText(http.StatusRequestTimeout), http.StatusRequestTimeout)
+				return
+			case resp := <-responseChan:
+				tmpl := template.Must(template.ParseFiles("./templates/todoList.html"))
+				data := TodoPageData{
+					PageTitle: "My TODO List",
+					Todos:     resp.items,
+				}
+				tmpl.Execute(w, data)
+				return
+			}
 		}
-		tmpl := template.Must(template.ParseFiles("./templates/todoList.html"))
-		data := TodoPageData{
-			PageTitle: "My TODO List",
-			Todos:     items,
-		}
-		tmpl.Execute(w, data)
 	}
 }
 

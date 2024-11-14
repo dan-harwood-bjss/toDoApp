@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -29,9 +30,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("Received an error when opening file: %v\n", err)
 	}
+	ctx := context.Background()
 	fs := http.FileServer(http.Dir("./static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
-	http.HandleFunc("/", server.Read(store))
+	http.HandleFunc("/", server.Read(store, ctx))
 	http.HandleFunc("/create", server.Create(store))
 	http.HandleFunc("/create-form", server.GetCreateForm(store))
 	http.HandleFunc("/delete", server.Delete(store))
