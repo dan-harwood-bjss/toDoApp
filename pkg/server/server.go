@@ -3,6 +3,7 @@ package server
 import (
 	"log"
 	"net/http"
+	"path/filepath"
 	"text/template"
 
 	todo "github.com/dan-harwood-bjss/toDoApp/pkg/models/toDo"
@@ -23,7 +24,7 @@ func Create(store *jsonStore.JsonStore) func(w http.ResponseWriter, r *http.Requ
 			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 			return
 		}
-		logger.Printf("Received request: %v", r)
+		logger.Printf("Received request of method: %v\n", r.Method)
 		r.ParseForm()
 		name := r.Form.Get("name")
 		if name == "" {
@@ -51,13 +52,17 @@ func Create(store *jsonStore.JsonStore) func(w http.ResponseWriter, r *http.Requ
 }
 func Read(store *jsonStore.JsonStore) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if filepath.Clean(r.URL.Path) != "/" {
+			http.NotFound(w, r)
+			return
+		}
 		logger := log.Default()
 		if r.Method != http.MethodGet {
 			logger.Printf("Received %s method to a GET endpoint.\n", r.Method)
 			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 			return
 		}
-		logger.Printf("Received request: %v", r)
+		logger.Printf("Received request method: %v\n", r.Method)
 		items, err := jsonStore.Read(store)
 		if err != nil {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -69,5 +74,20 @@ func Read(store *jsonStore.JsonStore) func(w http.ResponseWriter, r *http.Reques
 			Todos:     items,
 		}
 		tmpl.Execute(w, data)
+	}
+}
+
+func GetUpdateForm(store *jsonStore.JsonStore) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := r.URL.Query().Get("id")
+		item, _ := jsonStore.GetItem(store, id)
+		tmpl := template.Must(template.ParseFiles("./templates/updateForm.html"))
+		tmpl.Execute(w, item)
+	}
+}
+
+func Update(store *jsonStore.JsonStore) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+
 	}
 }

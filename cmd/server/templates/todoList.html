@@ -1,14 +1,31 @@
-<h1>{{.PageTitle}}</h1>
-<ul>
-    {{if .Todos}} {{range $key, $value := .Todos}} {{if $value.Completed}}
-    <li class="done">
-        <span>{{$value.Name}}</span><span style="color: green"> Completed</span>
-    </li>
-    {{else}}
-    <li>
-        <span>{{$value.Name}}</span><span style="color: red"> Incomplete</span>
-    </li>
-    {{end}} {{end}} {{else}}
-    <p>Nothing to see here!</p>
-    {{end}}
-</ul>
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <script src="./static/main.js"></script>
+        <link rel="stylesheet" href="./static/styles.css" />
+        <title>ToDoApp</title>
+    </head>
+    <body class="flex">
+        <h1>{{.PageTitle}}</h1>
+        <ul>
+            {{if .Todos}} {{range $key, $value := .Todos}} {{if
+            $value.Completed}}
+            <li class="flex-row">
+                <p>{{$value.Name}}</p>
+                <p class="completed">Completed</p>
+            </li>
+            {{else}}
+            <li class="flex-row">
+                <p>{{$value.Name}}</p>
+                <p class="incomplete">Incomplete</p>
+                <a href="/update-form?id={{$value.Id}}">Update</a>
+                <a href="/Delete?id={{$value.Id}}">Delete</a>
+            </li>
+            {{end}} {{end}} {{else}}
+            <p>Nothing to see here!</p>
+            {{end}}
+        </ul>
+    </body>
+</html>

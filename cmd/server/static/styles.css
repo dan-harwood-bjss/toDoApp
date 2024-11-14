@@ -1,0 +1,35 @@
+html, body{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    width: 100%;
+}
+.flex {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.flex-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.completed {
+    color: green;
+}
+.incomplete {
+    color: red;
+}
+.button {
+    cursor: pointer;
+    background: #4E9CAF;
+    padding: 10px;
+    text-align: center;
+    border-width: 0;
+    margin: 10px;
+    color: white;
+    font-weight: bold;
+    line-height: 25px;
+    text-decoration: none;
+}
