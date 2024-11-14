@@ -94,3 +94,37 @@ func BenchmarkJsonStore(b *testing.B) {
 		b.Errorf("Expected store to have %d items but got %d items instead.", b.N, len(store.data))
 	}
 }
+
+func FuzzCreate(f *testing.F) {
+	testcases := []struct {
+		Name        string
+		Description string
+		Completed   bool
+	}{
+		{
+			Name:        "Work",
+			Description: "Do work",
+			Completed:   false,
+		},
+		{
+			Name:        "Clean",
+			Description: "Tidy up",
+			Completed:   true,
+		},
+	}
+	for _, tc := range testcases {
+		f.Add(tc.Name, tc.Description, tc.Completed)
+	}
+	buffer := &bytes.Buffer{}
+	store, err := NewJsonStore(buffer)
+	if err != nil {
+		f.Fatalf("Got an error when creating store. Error: %v", err)
+	}
+	f.Fuzz(func(t *testing.T, name string, description string, completed bool) {
+		item := todo.NewToDo(uuid.NewString(), name, description, completed)
+		err := Create(store, item)
+		if err != nil {
+			t.Errorf("Received an error: %v for inputs: %s, %s, %v", err, name, description, completed)
+		}
+	})
+}

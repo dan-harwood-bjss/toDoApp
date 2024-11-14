@@ -76,9 +76,9 @@ func Read(store *jsonStore.JsonStore, ctx context.Context) func(w http.ResponseW
 			return
 		}
 		logger.Printf("Received request method: %v\n", r.Method)
+		responseChan := make(chan readResponse)
 		ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 		defer cancel()
-		responseChan := make(chan readResponse)
 		go func() {
 			items, err := jsonStore.Read(store)
 			if err != nil {
