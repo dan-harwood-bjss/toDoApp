@@ -33,3 +33,9 @@ html, body{
     line-height: 25px;
     text-decoration: none;
 }
+.row-title {
+    color: blue;
+}
+p {
+    margin-right: 5px;
+}

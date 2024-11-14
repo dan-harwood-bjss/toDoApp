@@ -12,14 +12,24 @@
             {{if .Todos}} {{range $key, $value := .Todos}} {{if
             $value.Completed}}
             <li class="flex-row">
-                <p>{{$value.Name}}</p>
+                <p><span class="row-title">Name:</span> {{$value.Name}}</p>
+                <p>
+                    <span class="row-title">Description:</span>
+                    {{$value.Description}}
+                </p>
+                <p class="row-title">Status:</p>
                 <p class="completed">Completed</p>
                 <a href="/update-form?id={{$value.Id}}">Update</a>
                 <a href="/delete?id={{$value.Id}}">Delete</a>
             </li>
             {{else}}
             <li class="flex-row">
-                <p>{{$value.Name}}</p>
+                <p><span class="row-title">Name:</span> {{$value.Name}}</p>
+                <p>
+                    <span class="row-title">Description:</span>
+                    {{$value.Description}}
+                </p>
+                <p class="row-title">Status:</p>
                 <p class="incomplete">Incomplete</p>
                 <a href="/update-form?id={{$value.Id}}">Update</a>
                 <a href="/delete?id={{$value.Id}}">Delete</a>
